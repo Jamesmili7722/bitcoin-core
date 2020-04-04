@@ -20,7 +20,6 @@ test/lint/git-subtree-check.sh src/univalue
 test/lint/git-subtree-check.sh src/leveldb
 test/lint/git-subtree-check.sh src/crc32c
 test/lint/check-doc.py
-test/lint/check-rpc-mappings.py .
 test/lint/lint-all.sh
 
 if [ "$TRAVIS_REPO_SLUG" = "bitcoin/bitcoin" ] && [ "$TRAVIS_EVENT_TYPE" = "cron" ]; then
