@@ -23,11 +23,22 @@ struct ConnmanTestMsg : public CConnman {
         vNodes.clear();
     }
 
+    void SetPeerPermissionFlags(CNode& peer, const NetPermissionFlags& flags) { peer.m_permissionFlags = flags; }
+
     void ProcessMessagesOnce(CNode& node) { m_msgproc->ProcessMessages(&node, flagInterruptMsgProc); }
 
     void NodeReceiveMsgBytes(CNode& node, const char* pch, unsigned int nBytes, bool& complete) const;
 
     bool ReceiveMsgFrom(CNode& node, CSerializedNetMsg& ser_msg) const;
+};
+
+constexpr ConnectionType ALL_CONNECTION_TYPES[]{
+    ConnectionType::INBOUND,
+    ConnectionType::OUTBOUND_FULL_RELAY,
+    ConnectionType::MANUAL,
+    ConnectionType::FEELER,
+    ConnectionType::BLOCK_RELAY,
+    ConnectionType::ADDR_FETCH,
 };
 
 #endif // BITCOIN_TEST_UTIL_NET_H

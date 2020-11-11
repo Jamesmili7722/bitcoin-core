@@ -72,8 +72,12 @@ void test_one_input(const std::vector<uint8_t>& buffer)
     }
     const bool jump_out_of_ibd{fuzzed_data_provider.ConsumeBool()};
     if (jump_out_of_ibd) chainstate.JumpOutOfIbd();
+    const ServiceFlags service_flags = ServiceFlags(fuzzed_data_provider.ConsumeIntegral<uint64_t>());
+    const NetPermissionFlags permission_flags = NetPermissionFlags(fuzzed_data_provider.ConsumeIntegral<std::underlying_type<NetPermissionFlags>::type>());
+    const ConnectionType conn_type = fuzzed_data_provider.PickValueInArray(ALL_CONNECTION_TYPES);
     CDataStream random_bytes_data_stream{fuzzed_data_provider.ConsumeRemainingBytes<unsigned char>(), SER_NETWORK, PROTOCOL_VERSION};
-    CNode& p2p_node = *MakeUnique<CNode>(0, ServiceFlags(NODE_NETWORK | NODE_WITNESS | NODE_BLOOM), 0, INVALID_SOCKET, CAddress{CService{in_addr{0x0100007f}, 7777}, NODE_NETWORK}, 0, 0, CAddress{}, std::string{}, ConnectionType::OUTBOUND_FULL_RELAY).release();
+    CNode& p2p_node = *MakeUnique<CNode>(0, service_flags, 0, INVALID_SOCKET, CAddress{CService{in_addr{0x0100007f}, 7777}, NODE_NETWORK}, 0, 0, CAddress{}, std::string{}, conn_type).release();
+    connman.SetPeerPermissionFlags(p2p_node, permission_flags);
     p2p_node.fSuccessfullyConnected = true;
     p2p_node.nVersion = PROTOCOL_VERSION;
     p2p_node.SetCommonVersion(PROTOCOL_VERSION);
@@ -83,6 +87,10 @@ void test_one_input(const std::vector<uint8_t>& buffer)
         g_setup->m_node.peerman->ProcessMessage(p2p_node, random_message_type, random_bytes_data_stream,
                                                 GetTime<std::chrono::microseconds>(), std::atomic<bool>{false});
     } catch (const std::ios_base::failure&) {
+    }
+    {
+        LOCK(p2p_node.cs_sendProcessing);
+        g_setup->m_node.peerman->SendMessages(&p2p_node);
     }
     SyncWithValidationInterfaceQueue();
     LOCK2(::cs_main, g_cs_orphans); // See init.cpp for rationale for implicit locking order requirement
