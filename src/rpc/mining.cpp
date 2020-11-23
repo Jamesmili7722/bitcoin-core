@@ -920,14 +920,17 @@ static RPCHelpMan submitblock()
 {
     // We allow 2 arguments for compliance with BIP22. Argument 2 is ignored.
     return RPCHelpMan{"submitblock",
-                "\nAttempts to submit new block to network.\n"
-                "See https://en.bitcoin.it/wiki/BIP_0022 for full specification.\n",
-                {
-                    {"hexdata", RPCArg::Type::STR_HEX, RPCArg::Optional::NO, "the hex-encoded block data to submit"},
-                    {"dummy", RPCArg::Type::STR, /* default */ "ignored", "dummy value, for compatibility with BIP22. This value is ignored."},
-                },
-                RPCResult{RPCResult::Type::NONE, "", "Returns JSON Null when valid, a string according to BIP22 otherwise"},
-                RPCExamples{
+        "\nAttempts to submit new block to network.\n"
+        "See https://en.bitcoin.it/wiki/BIP_0022 for full specification.\n",
+        {
+            {"hexdata", RPCArg::Type::STR_HEX, RPCArg::Optional::NO, "the hex-encoded block data to submit"},
+            {"dummy", RPCArg::Type::STR, /* default */ "ignored", "dummy value, for compatibility with BIP22. This value is ignored."},
+        },
+        {
+            RPCResult{"when valid", RPCResult::Type::NONE, "", ""},
+            RPCResult{"otherwise", RPCResult::Type::STR, "", "According to BIP22"},
+        },
+        RPCExamples{
                     HelpExampleCli("submitblock", "\"mydata\"")
             + HelpExampleRpc("submitblock", "\"mydata\"")
                 },
