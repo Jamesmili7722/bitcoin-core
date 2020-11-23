@@ -226,7 +226,7 @@ struct RPCResult {
         NUM,
         BOOL,
         NONE,
-        STR_AMOUNT, //!< Special string to represent a floating point amount
+        NUM_AMOUNT, //!< Special string to represent a floating point amount
         STR_HEX,    //!< Special string with only hex chars
         OBJ_DYN,    //!< Special dictionary with keys that are not literals
         ARR_FIXED,  //!< Special array that has a fixed number of entries

@@ -667,7 +667,7 @@ void RPCResult::ToSections(Sections& sections, const OuterType outer_type, const
         sections.PushSection({indent + maybe_key + "\"str\"" + maybe_separator, Description("string")});
         return;
     }
-    case Type::STR_AMOUNT: {
+    case Type::NUM_AMOUNT: {
         sections.PushSection({indent + maybe_key + "n" + maybe_separator, Description("numeric")});
         return;
     }
