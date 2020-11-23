@@ -205,12 +205,12 @@ class CDataStream
 protected:
     using vector_type = SerializeData;
     vector_type vch;
-    unsigned int nReadPos;
+    unsigned int nReadPos{0};
 
     int nType;
     int nVersion;
-public:
 
+public:
     typedef vector_type::allocator_type   allocator_type;
     typedef vector_type::size_type        size_type;
     typedef vector_type::difference_type  difference_type;
@@ -222,28 +222,25 @@ public:
     typedef vector_type::reverse_iterator reverse_iterator;
 
     explicit CDataStream(int nTypeIn, int nVersionIn)
-    {
-        Init(nTypeIn, nVersionIn);
-    }
+        : nType{nTypeIn},
+          nVersion{nVersionIn} {}
 
     explicit CDataStream(Span<const uint8_t> sp, int nTypeIn, int nVersionIn)
-        : vch(sp.data(), sp.data() + sp.size())
-    {
-        Init(nTypeIn, nVersionIn);
-    }
+        : vch(sp.data(), sp.data() + sp.size()),
+          nType{nTypeIn},
+          nVersion{nVersionIn} {}
 
     template <typename... Args>
     CDataStream(int nTypeIn, int nVersionIn, Args&&... args)
+        : nType{nTypeIn},
+          nVersion{nVersionIn}
     {
-        Init(nTypeIn, nVersionIn);
         ::SerializeMany(*this, std::forward<Args>(args)...);
     }
 
-    void Init(int nTypeIn, int nVersionIn)
+    void Rewind()
     {
         nReadPos = 0;
-        nType = nTypeIn;
-        nVersion = nVersionIn;
     }
 
     std::string str() const
