@@ -1340,6 +1340,10 @@ RPCHelpMan importmulti()
     if (!pwallet) return NullUniValue;
     CWallet& wallet = *pwallet;
 
+    // Make sure the results are valid at least up to the most recent block
+    // the user could have gotten from another RPC command prior to now
+    wallet.BlockUntilSyncedToCurrentChain();
+
     RPCTypeCheck(mainRequest.params, {UniValue::VARR, UniValue::VOBJ});
 
     EnsureLegacyScriptPubKeyMan(wallet, true);
@@ -1644,6 +1648,10 @@ RPCHelpMan importdescriptors()
     std::shared_ptr<CWallet> const pwallet = GetWalletForJSONRPCRequest(main_request);
     if (!pwallet) return NullUniValue;
     CWallet& wallet = *pwallet;
+
+    // Make sure the results are valid at least up to the most recent block
+    // the user could have gotten from another RPC command prior to now
+    wallet.BlockUntilSyncedToCurrentChain();
 
     //  Make sure wallet is a descriptor wallet
     if (!wallet.IsWalletFlagSet(WALLET_FLAG_DESCRIPTORS)) {

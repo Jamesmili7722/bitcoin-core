@@ -3591,6 +3591,10 @@ static RPCHelpMan rescanblockchain()
     if (!pwallet) return NullUniValue;
     CWallet& wallet = *pwallet;
 
+    // Make sure the results are valid at least up to the most recent block
+    // the user could have gotten from another RPC command prior to now
+    wallet.BlockUntilSyncedToCurrentChain();
+
     WalletRescanReserver reserver(wallet);
     if (!reserver.reserve()) {
         throw JSONRPCError(RPC_WALLET_ERROR, "Wallet is currently rescanning. Abort existing rescan or wait.");
