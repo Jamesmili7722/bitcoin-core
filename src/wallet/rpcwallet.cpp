@@ -3587,11 +3587,11 @@ static RPCHelpMan rescanblockchain()
                 },
         [&](const RPCHelpMan& self, const JSONRPCRequest& request) -> UniValue
 {
-    std::shared_ptr<CWallet> const wallet = GetWalletForJSONRPCRequest(request);
-    if (!wallet) return NullUniValue;
-    CWallet* const pwallet = wallet.get();
+    std::shared_ptr<CWallet> const pwallet = GetWalletForJSONRPCRequest(request);
+    if (!pwallet) return NullUniValue;
+    CWallet& wallet = *pwallet;
 
-    WalletRescanReserver reserver(*pwallet);
+    WalletRescanReserver reserver(wallet);
     if (!reserver.reserve()) {
         throw JSONRPCError(RPC_WALLET_ERROR, "Wallet is currently rescanning. Abort existing rescan or wait.");
     }
@@ -3600,8 +3600,8 @@ static RPCHelpMan rescanblockchain()
     Optional<int> stop_height = MakeOptional(false, int());
     uint256 start_block;
     {
-        LOCK(pwallet->cs_wallet);
-        int tip_height = pwallet->GetLastBlockHeight();
+        LOCK(wallet.cs_wallet);
+        int tip_height = wallet.GetLastBlockHeight();
 
         if (!request.params[0].isNull()) {
             start_height = request.params[0].get_int();
@@ -3620,15 +3620,15 @@ static RPCHelpMan rescanblockchain()
         }
 
         // We can't rescan beyond non-pruned blocks, stop and throw an error
-        if (!pwallet->chain().hasBlocks(pwallet->GetLastBlockHash(), start_height, stop_height)) {
+        if (!wallet.chain().hasBlocks(wallet.GetLastBlockHash(), start_height, stop_height)) {
             throw JSONRPCError(RPC_MISC_ERROR, "Can't rescan beyond pruned data. Use RPC call getblockchaininfo to determine your pruned height.");
         }
 
-        CHECK_NONFATAL(pwallet->chain().findAncestorByHeight(pwallet->GetLastBlockHash(), start_height, FoundBlock().hash(start_block)));
+        CHECK_NONFATAL(wallet.chain().findAncestorByHeight(wallet.GetLastBlockHash(), start_height, FoundBlock().hash(start_block)));
     }
 
     CWallet::ScanResult result =
-        pwallet->ScanForWalletTransactions(start_block, start_height, stop_height, reserver, true /* fUpdate */);
+        wallet.ScanForWalletTransactions(start_block, start_height, stop_height, reserver, true /* fUpdate */);
     switch (result.status) {
     case CWallet::ScanResult::SUCCESS:
         break;

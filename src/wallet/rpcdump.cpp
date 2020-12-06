@@ -1336,13 +1336,13 @@ RPCHelpMan importmulti()
                 },
         [&](const RPCHelpMan& self, const JSONRPCRequest& mainRequest) -> UniValue
 {
-    std::shared_ptr<CWallet> const wallet = GetWalletForJSONRPCRequest(mainRequest);
-    if (!wallet) return NullUniValue;
-    CWallet* const pwallet = wallet.get();
+    std::shared_ptr<CWallet> const pwallet = GetWalletForJSONRPCRequest(mainRequest);
+    if (!pwallet) return NullUniValue;
+    CWallet& wallet = *pwallet;
 
     RPCTypeCheck(mainRequest.params, {UniValue::VARR, UniValue::VOBJ});
 
-    EnsureLegacyScriptPubKeyMan(*wallet, true);
+    EnsureLegacyScriptPubKeyMan(wallet, true);
 
     const UniValue& requests = mainRequest.params[0];
 
@@ -1357,7 +1357,7 @@ RPCHelpMan importmulti()
         }
     }
 
-    WalletRescanReserver reserver(*pwallet);
+    WalletRescanReserver reserver(wallet);
     if (fRescan && !reserver.reserve()) {
         throw JSONRPCError(RPC_WALLET_ERROR, "Wallet is currently rescanning. Abort existing rescan or wait.");
     }
@@ -1367,11 +1367,11 @@ RPCHelpMan importmulti()
     int64_t nLowestTimestamp = 0;
     UniValue response(UniValue::VARR);
     {
-        LOCK(pwallet->cs_wallet);
-        EnsureWalletIsUnlocked(pwallet);
+        LOCK(wallet.cs_wallet);
+        EnsureWalletIsUnlocked(&wallet);
 
         // Verify all timestamps are present before importing any keys.
-        CHECK_NONFATAL(pwallet->chain().findBlock(pwallet->GetLastBlockHash(), FoundBlock().time(nLowestTimestamp).mtpTime(now)));
+        CHECK_NONFATAL(wallet.chain().findBlock(wallet.GetLastBlockHash(), FoundBlock().time(nLowestTimestamp).mtpTime(now)));
         for (const UniValue& data : requests.getValues()) {
             GetImportTimestamp(data, now);
         }
@@ -1380,7 +1380,7 @@ RPCHelpMan importmulti()
 
         for (const UniValue& data : requests.getValues()) {
             const int64_t timestamp = std::max(GetImportTimestamp(data, now), minimumTimestamp);
-            const UniValue result = ProcessImport(pwallet, data, timestamp);
+            const UniValue result = ProcessImport(&wallet, data, timestamp);
             response.push_back(result);
 
             if (!fRescan) {
@@ -1399,13 +1399,13 @@ RPCHelpMan importmulti()
         }
     }
     if (fRescan && fRunScan && requests.size()) {
-        int64_t scannedTime = pwallet->RescanFromTime(nLowestTimestamp, reserver, true /* update */);
+        int64_t scannedTime = wallet.RescanFromTime(nLowestTimestamp, reserver, true /* update */);
         {
-            LOCK(pwallet->cs_wallet);
-            pwallet->ReacceptWalletTransactions();
+            LOCK(wallet.cs_wallet);
+            wallet.ReacceptWalletTransactions();
         }
 
-        if (pwallet->IsAbortingRescan()) {
+        if (wallet.IsAbortingRescan()) {
             throw JSONRPCError(RPC_MISC_ERROR, "Rescan aborted by user.");
         }
         if (scannedTime > nLowestTimestamp) {
@@ -1641,18 +1641,18 @@ RPCHelpMan importdescriptors()
                 },
         [&](const RPCHelpMan& self, const JSONRPCRequest& main_request) -> UniValue
 {
-    std::shared_ptr<CWallet> const wallet = GetWalletForJSONRPCRequest(main_request);
-    if (!wallet) return NullUniValue;
-    CWallet* const pwallet = wallet.get();
+    std::shared_ptr<CWallet> const pwallet = GetWalletForJSONRPCRequest(main_request);
+    if (!pwallet) return NullUniValue;
+    CWallet& wallet = *pwallet;
 
     //  Make sure wallet is a descriptor wallet
-    if (!pwallet->IsWalletFlagSet(WALLET_FLAG_DESCRIPTORS)) {
+    if (!wallet.IsWalletFlagSet(WALLET_FLAG_DESCRIPTORS)) {
         throw JSONRPCError(RPC_WALLET_ERROR, "importdescriptors is not available for non-descriptor wallets");
     }
 
     RPCTypeCheck(main_request.params, {UniValue::VARR, UniValue::VOBJ});
 
-    WalletRescanReserver reserver(*pwallet);
+    WalletRescanReserver reserver(wallet);
     if (!reserver.reserve()) {
         throw JSONRPCError(RPC_WALLET_ERROR, "Wallet is currently rescanning. Abort existing rescan or wait.");
     }
@@ -1664,16 +1664,16 @@ RPCHelpMan importdescriptors()
     bool rescan = false;
     UniValue response(UniValue::VARR);
     {
-        LOCK(pwallet->cs_wallet);
-        EnsureWalletIsUnlocked(pwallet);
+        LOCK(wallet.cs_wallet);
+        EnsureWalletIsUnlocked(&wallet);
 
-        CHECK_NONFATAL(pwallet->chain().findBlock(pwallet->GetLastBlockHash(), FoundBlock().time(lowest_timestamp).mtpTime(now)));
+        CHECK_NONFATAL(wallet.chain().findBlock(wallet.GetLastBlockHash(), FoundBlock().time(lowest_timestamp).mtpTime(now)));
 
         // Get all timestamps and extract the lowest timestamp
         for (const UniValue& request : requests.getValues()) {
             // This throws an error if "timestamp" doesn't exist
             const int64_t timestamp = std::max(GetImportTimestamp(request, now), minimum_timestamp);
-            const UniValue result = ProcessDescriptorImport(pwallet, request, timestamp);
+            const UniValue result = ProcessDescriptorImport(&wallet, request, timestamp);
             response.push_back(result);
 
             if (lowest_timestamp > timestamp ) {
@@ -1685,18 +1685,18 @@ RPCHelpMan importdescriptors()
                 rescan = true;
             }
         }
-        pwallet->ConnectScriptPubKeyManNotifiers();
+        wallet.ConnectScriptPubKeyManNotifiers();
     }
 
     // Rescan the blockchain using the lowest timestamp
     if (rescan) {
-        int64_t scanned_time = pwallet->RescanFromTime(lowest_timestamp, reserver, true /* update */);
+        int64_t scanned_time = wallet.RescanFromTime(lowest_timestamp, reserver, true /* update */);
         {
-            LOCK(pwallet->cs_wallet);
-            pwallet->ReacceptWalletTransactions();
+            LOCK(wallet.cs_wallet);
+            wallet.ReacceptWalletTransactions();
         }
 
-        if (pwallet->IsAbortingRescan()) {
+        if (wallet.IsAbortingRescan()) {
             throw JSONRPCError(RPC_MISC_ERROR, "Rescan aborted by user.");
         }
 
